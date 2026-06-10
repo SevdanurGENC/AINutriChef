@@ -1,0 +1,1545 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI NutriChef — Akıllı Şef Asistanı</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@500;700&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #232736;
+    --border: #2e3347;
+    --accent: #e8a045;
+    --accent2: #5ecfb1;
+    --accent3: #e05c6a;
+    --text: #eef0f7;
+    --muted: #7c849e;
+    --success: #4ade80;
+    --warning: #facc15;
+    --danger: #f87171;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 15px; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+  }
+
+  /* ── LAYOUT ── */
+  #app { display: flex; height: 100vh; overflow: hidden; }
+
+  /* SIDEBAR */
+  #sidebar {
+    width: 220px; flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    padding: 20px 0;
+  }
+  .logo {
+    padding: 0 18px 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 12px;
+  }
+  .logo h1 { font-family: 'Playfair Display', serif; font-size: 1.25rem; color: var(--accent); }
+  .logo span { font-size: .7rem; color: var(--muted); letter-spacing: .05em; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 18px; cursor: pointer;
+    font-size: .82rem; color: var(--muted);
+    transition: all .15s;
+    border-left: 3px solid transparent;
+  }
+  .nav-item:hover { color: var(--text); background: rgba(255,255,255,.04); }
+  .nav-item.active { color: var(--accent); border-left-color: var(--accent); background: rgba(232,160,69,.07); }
+  .nav-icon { font-size: 1rem; width: 18px; text-align: center; }
+  .nav-section { padding: 14px 18px 4px; font-size: .65rem; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; }
+  #sidebar-bottom { margin-top: auto; padding: 12px 18px; border-top: 1px solid var(--border); }
+  .lang-toggle { display: flex; gap: 5px; flex-wrap: wrap; }
+  .lang-btn {
+    padding: 3px 8px; border-radius: 4px; font-size: .7rem;
+    cursor: pointer; border: 1px solid var(--border);
+    background: transparent; color: var(--muted); transition: all .15s;
+  }
+  .lang-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+
+  /* MAIN */
+  #main { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+  #topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 24px; border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  #topbar h2 { font-size: 1rem; font-weight: 600; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 20px; font-size: .72rem; font-weight: 500;
+  }
+  .badge-green { background: rgba(74,222,128,.12); color: var(--success); }
+  .badge-orange { background: rgba(232,160,69,.12); color: var(--accent); }
+  .badge-red { background: rgba(248,113,113,.12); color: var(--danger); }
+  .badge-teal { background: rgba(94,207,177,.12); color: var(--accent2); }
+
+  #content { flex: 1; overflow-y: auto; padding: 24px; }
+
+  /* PANELS */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* CARDS */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: .82rem; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .07em; margin-bottom: 12px;
+  }
+
+  /* GRID */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+
+  /* STAT CARDS */
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px;
+  }
+  .stat-label { font-size: .72rem; color: var(--muted); margin-bottom: 6px; }
+  .stat-value { font-size: 1.6rem; font-weight: 700; }
+  .stat-sub { font-size: .72rem; color: var(--muted); margin-top: 4px; }
+
+  /* RECIPE CARD */
+  .recipe-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px;
+    transition: all .2s; cursor: pointer;
+  }
+  .recipe-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .recipe-card.selected { border-color: var(--accent); background: rgba(232,160,69,.07); }
+  .recipe-name { font-size: .88rem; font-weight: 600; margin-bottom: 6px; }
+  .recipe-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .tag {
+    font-size: .65rem; padding: 2px 7px; border-radius: 20px;
+    background: rgba(255,255,255,.06); color: var(--muted);
+  }
+  .tag.ok { background: rgba(74,222,128,.1); color: var(--success); }
+  .tag.warn { background: rgba(250,204,21,.1); color: var(--warning); }
+  .tag.danger { background: rgba(248,113,113,.1); color: var(--danger); }
+  .score-bar { background: var(--border); border-radius: 3px; height: 5px; margin-top: 8px; }
+  .score-fill { height: 100%; border-radius: 3px; background: var(--accent); transition: width .4s; }
+
+  /* DECISION STEP */
+  .step-flow { display: flex; flex-direction: column; gap: 0; }
+  .step {
+    display: flex; gap: 14px; align-items: flex-start;
+    padding: 12px 0; border-bottom: 1px solid var(--border);
+    opacity: .35; transition: opacity .3s;
+  }
+  .step.done { opacity: 1; }
+  .step.active { opacity: 1; }
+  .step-num {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--border); display: flex; align-items: center; justify-content: center;
+    font-size: .72rem; font-weight: 700; flex-shrink: 0; margin-top: 2px;
+  }
+  .step.done .step-num { background: var(--success); color: #000; }
+  .step.active .step-num { background: var(--accent); color: #000; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+  .step-body { flex: 1; }
+  .step-title { font-size: .82rem; font-weight: 600; margin-bottom: 3px; }
+  .step-desc { font-size: .74rem; color: var(--muted); }
+  .step-result { font-size: .74rem; margin-top: 5px; }
+
+  /* TABLE */
+  table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+  th { text-align: left; color: var(--muted); font-weight: 500; padding: 8px 12px; font-size: .72rem;
+       border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: .05em; }
+  td { padding: 9px 12px; border-bottom: 1px solid rgba(255,255,255,.04); }
+  tr:hover td { background: rgba(255,255,255,.02); }
+
+  /* BUTTONS */
+  .btn {
+    padding: 9px 18px; border-radius: 7px; font-size: .82rem; font-weight: 600;
+    cursor: pointer; border: none; transition: all .15s;
+  }
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-primary:hover { background: #f0b05a; }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger { background: rgba(248,113,113,.15); color: var(--danger); border: 1px solid rgba(248,113,113,.3); }
+
+  /* FORM */
+  .form-group { margin-bottom: 14px; }
+  label { display: block; font-size: .75rem; color: var(--muted); margin-bottom: 5px; }
+  select, input, textarea {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px 11px; color: var(--text);
+    font-size: .82rem; outline: none; font-family: 'Inter', sans-serif;
+  }
+  select:focus, input:focus, textarea:focus { border-color: var(--accent); }
+  .checkbox-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 5px; }
+  .checkbox-item {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 10px; border-radius: 6px;
+    border: 1px solid var(--border); cursor: pointer;
+    font-size: .78rem; transition: all .15s; background: var(--surface2);
+  }
+  .checkbox-item.active { border-color: var(--accent2); background: rgba(94,207,177,.08); color: var(--accent2); }
+  .checkbox-item input { width: auto; }
+
+  /* CHATBOT */
+  #chat-messages {
+    height: 320px; overflow-y: auto; padding: 14px;
+    background: var(--surface2); border-radius: 8px; margin-bottom: 12px;
+    border: 1px solid var(--border);
+  }
+  .msg { display: flex; gap: 10px; margin-bottom: 12px; align-items: flex-start; }
+  .msg.user { flex-direction: row-reverse; }
+  .msg-avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .8rem; flex-shrink: 0;
+  }
+  .msg.bot .msg-avatar { background: var(--accent); color: #000; }
+  .msg.user .msg-avatar { background: var(--accent2); color: #000; }
+  .msg-text {
+    max-width: 75%; padding: 8px 12px; border-radius: 10px; font-size: .8rem; line-height: 1.5;
+  }
+  .msg.bot .msg-text { background: var(--surface); border: 1px solid var(--border); }
+  .msg.user .msg-text { background: rgba(94,207,177,.1); border: 1px solid rgba(94,207,177,.2); }
+  .chat-input-row { display: flex; gap: 8px; }
+  .chat-input-row input { flex: 1; }
+
+  /* PROGRESS */
+  .progress-ring { position: relative; display: inline-block; }
+  .progress-label {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    font-size: .9rem; font-weight: 700;
+  }
+
+  /* SENSOR CHART */
+  .sensor-bars { display: flex; flex-direction: column; gap: 8px; }
+  .sensor-row { display: flex; align-items: center; gap: 10px; }
+  .sensor-name { width: 100px; font-size: .75rem; color: var(--muted); flex-shrink: 0; }
+  .sensor-track { flex: 1; background: var(--border); border-radius: 3px; height: 7px; }
+  .sensor-fill { height: 100%; border-radius: 3px; transition: width .6s; }
+  .sensor-val { width: 30px; text-align: right; font-size: .75rem; font-weight: 600; }
+
+  /* ALERTS */
+  .alert {
+    padding: 10px 14px; border-radius: 7px; font-size: .8rem; margin-bottom: 10px;
+    display: flex; gap: 8px; align-items: flex-start;
+  }
+  .alert-warn { background: rgba(250,204,21,.08); border: 1px solid rgba(250,204,21,.2); color: var(--warning); }
+  .alert-danger { background: rgba(248,113,113,.08); border: 1px solid rgba(248,113,113,.2); color: var(--danger); }
+  .alert-success { background: rgba(74,222,128,.08); border: 1px solid rgba(74,222,128,.2); color: var(--success); }
+  .alert-info { background: rgba(94,207,177,.08); border: 1px solid rgba(94,207,177,.2); color: var(--accent2); }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ANIMATION */
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+  .fade-in { animation: fadeIn .3s ease; }
+
+  /* ONTOLOGY NODE */
+  .onto-tree { font-size: .78rem; line-height: 2; }
+  .onto-node { padding-left: 18px; position: relative; }
+  .onto-node::before {
+    content: ''; position: absolute; left: 6px; top: 0; bottom: 0;
+    border-left: 1px dashed var(--border);
+  }
+  .onto-leaf { display: inline-flex; align-items: center; gap: 6px; }
+  .onto-dot {
+    width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0;
+  }
+
+  /* PILOT TAB */
+  .tab-bar { display: flex; gap: 2px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
+  .tab {
+    padding: 8px 16px; font-size: .8rem; cursor: pointer; color: var(--muted);
+    border-bottom: 2px solid transparent; transition: all .15s;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* METER */
+  .meter-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: .8rem; }
+  .meter-bar { flex: 1; mx: 10px; background: var(--border); border-radius: 3px; height: 6px; margin: 0 10px; }
+  .meter-fill { height: 100%; border-radius: 3px; }
+
+  .tooltip { position: relative; cursor: help; }
+  .tooltip::after {
+    content: attr(data-tip);
+    position: absolute; left: 0; bottom: 120%; background: #111;
+    color: #fff; padding: 4px 8px; border-radius: 4px; font-size: .7rem;
+    white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity .2s; z-index: 99;
+  }
+  .tooltip:hover::after { opacity: 1; }
+
+  #loading-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.7);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 999; display: none;
+  }
+  .spinner {
+    width: 36px; height: 36px; border: 3px solid var(--border);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div id="loading-overlay"><div class="spinner"></div></div>
+
+<div id="app">
+  <!-- SIDEBAR -->
+  <nav id="sidebar">
+    <div class="logo">
+      <h1>🍽 NutriChef</h1>
+      <span>AI Şef Asistanı v1.0</span>
+    </div>
+    <div class="nav-section">Müşteri</div>
+    <div class="nav-item active" onclick="showPanel('panel-customer')">
+      <span class="nav-icon">👤</span> Profil & Sipariş
+    </div>
+    <div class="nav-item" onclick="showPanel('panel-chatbot')">
+      <span class="nav-icon">💬</span> Sohbet Robotu
+    </div>
+    <div class="nav-section">Mutfak</div>
+    <div class="nav-item" onclick="showPanel('panel-kitchen')">
+      <span class="nav-icon">👨‍🍳</span> Mutfak Paneli
+    </div>
+    <div class="nav-item" onclick="showPanel('panel-stock')">
+      <span class="nav-icon">📦</span> Stok Yönetimi
+    </div>
+    <div class="nav-section">Sistem</div>
+    <div class="nav-item" onclick="showPanel('panel-decision')">
+      <span class="nav-icon">🧠</span> Karar Sistemi
+    </div>
+    <div class="nav-item" onclick="showPanel('panel-ontology')">
+      <span class="nav-icon">🕸</span> Ontoloji
+    </div>
+    <div class="nav-item" onclick="showPanel('panel-sensory')">
+      <span class="nav-icon">📊</span> Duyusal Analiz
+    </div>
+    <div class="nav-item" onclick="showPanel('panel-pilot')">
+      <span class="nav-icon">🏨</span> Pilot İşletmeler
+    </div>
+    <div class="nav-item" onclick="showPanel('panel-dashboard')">
+      <span class="nav-icon">📈</span> Dashboard
+    </div>
+    <div id="sidebar-bottom">
+      <div style="font-size:.7rem;color:var(--muted);margin-bottom:6px;">Dil / Language</div>
+      <div class="lang-toggle">
+        <button class="lang-btn active" onclick="setLang('tr')">TR</button>
+        <button class="lang-btn" onclick="setLang('en')">EN</button>
+        <button class="lang-btn" onclick="setLang('de')">DE</button>
+        <button class="lang-btn" onclick="setLang('ru')">RU</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <div id="main">
+    <div id="topbar">
+      <h2 id="page-title">Müşteri Profili & Sipariş</h2>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span class="badge badge-green">● Sistem Aktif</span>
+        <span class="badge badge-orange" id="active-pilot">Pilot: Çanakkale Grand Hotel</span>
+      </div>
+    </div>
+    <div id="content">
+
+      <!-- ═══════════════════════════════════════════════════
+           PANEL 1: CUSTOMER PROFILE & ORDER
+      ═══════════════════════════════════════════════════ -->
+      <div class="panel active fade-in" id="panel-customer">
+        <div class="grid2">
+          <!-- Profile form -->
+          <div>
+            <div class="card">
+              <div class="card-title">👤 Beslenme Profili Oluştur</div>
+              <div class="form-group">
+                <label>Ad</label>
+                <input type="text" id="cust-name" value="Ayşe Kaya" />
+              </div>
+              <div class="form-group">
+                <label>Masa No</label>
+                <select id="cust-table">
+                  <option>Masa 7</option><option>Masa 3</option><option>Masa 12</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Özel Beslenme Türü</label>
+                <select id="cust-diet" onchange="updateProfile()">
+                  <option value="glutensiz">Glutensiz Beslenme 🌾✗</option>
+                  <option value="laktozsuz">Laktozsuz Beslenme 🥛✗</option>
+                  <option value="vegan">Vegan / Vejetaryen 🌱</option>
+                  <option value="sekersiz">Rafine Şekersiz 🍬✗</option>
+                  <option value="lowcarb">Düşük Karbonhidratlı ⚡</option>
+                  <option value="spor">Spor Beslenmesi 💪</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Alerjenler (çoklu seçim)</label>
+                <div class="checkbox-group" id="allergen-group">
+                  <div class="checkbox-item" onclick="toggleAllergen(this,'gluten')">🌾 Gluten</div>
+                  <div class="checkbox-item active" onclick="toggleAllergen(this,'laktoz')">🥛 Laktoz</div>
+                  <div class="checkbox-item" onclick="toggleAllergen(this,'yumurta')">🥚 Yumurta</div>
+                  <div class="checkbox-item" onclick="toggleAllergen(this,'fistikvb')">🥜 Fındık/Fıstık</div>
+                  <div class="checkbox-item" onclick="toggleAllergen(this,'deniz')">🦐 Deniz Ürünleri</div>
+                  <div class="checkbox-item" onclick="toggleAllergen(this,'soya')">🫘 Soya</div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Yemek Kategorisi</label>
+                <select id="cust-category">
+                  <option>Başlangıç</option><option>Ana Yemek</option><option>Tatlı</option>
+                </select>
+              </div>
+              <button class="btn btn-primary" onclick="runDecisionEngine()" style="width:100%;margin-top:8px;">
+                🔍 Uygun Reçete Öner
+              </button>
+            </div>
+
+            <div class="card" id="profile-summary" style="display:none;">
+              <div class="card-title">📋 Aktif Profil</div>
+              <div id="profile-content"></div>
+            </div>
+          </div>
+
+          <!-- Results -->
+          <div>
+            <div class="card">
+              <div class="card-title">🍽 Önerilen Reçeteler</div>
+              <div id="recipe-results">
+                <div style="text-align:center;padding:30px;color:var(--muted);font-size:.85rem;">
+                  Profil oluşturup "Reçete Öner" butonuna tıklayın
+                </div>
+              </div>
+            </div>
+
+            <div class="card" id="order-panel" style="display:none;">
+              <div class="card-title">✅ Sipariş Özeti</div>
+              <div id="order-content"></div>
+              <button class="btn btn-primary" onclick="submitOrder()" style="margin-top:12px;">
+                📤 Mutfağa Gönder
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════
+           PANEL 2: CHATBOT
+      ═══════════════════════════════════════════════════ -->
+      <div class="panel" id="panel-chatbot">
+        <div class="grid2">
+          <div>
+            <div class="card">
+              <div class="card-title">💬 Sohbet Robotu — Dialogflow CX Simülasyonu</div>
+              <div id="chat-messages"></div>
+              <div class="chat-input-row">
+                <input type="text" id="chat-input" placeholder="Beslenme talebinizi yazın..." 
+                       onkeydown="if(event.key==='Enter')sendChat()" />
+                <button class="btn btn-secondary" onclick="startVoice()">🎤</button>
+                <button class="btn btn-primary" onclick="sendChat()">Gönder</button>
+              </div>
+              <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">
+                <button class="btn btn-secondary" style="font-size:.72rem;padding:4px 10px;" 
+                        onclick="quickChat('Glutensiz başlangıç önerisi')">Glutensiz önerisi</button>
+                <button class="btn btn-secondary" style="font-size:.72rem;padding:4px 10px;" 
+                        onclick="quickChat('Mercimek çorbasında gluten var mı?')">Alerjen sorgula</button>
+                <button class="btn btn-secondary" style="font-size:.72rem;padding:4px 10px;" 
+                        onclick="quickChat('Vegan tatlılar nelerdir?')">Vegan tatlı</button>
+                <button class="btn btn-secondary" style="font-size:.72rem;padding:4px 10px;" 
+                        onclick="quickChat('I need a lactose-free main course')">EN: Lactose-free</button>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="card">
+              <div class="card-title">🔬 NLP Analiz Çıktısı</div>
+              <div id="nlp-output">
+                <div style="color:var(--muted);font-size:.82rem;">Mesaj gönderin, NLP analizi burada görünür</div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">🌐 Dil Tespiti</div>
+              <div id="lang-detect" style="color:var(--muted);font-size:.82rem;">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════
+           PANEL 3: KITCHEN
+      ═══════════════════════════════════════════════════ -->
+      <div class="panel" id="panel-kitchen">
+        <div class="grid2">
+          <div>
+            <div class="card">
+              <div class="card-title">📋 Gelen Siparişler</div>
+              <div id="kitchen-orders"></div>
+            </div>
+          </div>
+          <div>
+            <div class="card">
+              <div class="card-title">⚠️ Alerjen Uyarıları</div>
+              <div id="kitchen-alerts"></div>
+            </div>
+            <div class="card">
+              <div class="card-title">✅ Hazırlanan Siparişler</div>
+              <div id="kitchen-completed" style="color:var(--muted);font-size:.82rem;">Henüz tamamlanan sipariş yok</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════
+           PANEL 4: STOCK
+      ═══════════════════════════════════════════════════ -->
+      <div class="panel" id="panel-stock">
+        <div class="card">
+          <div class="card-title">📦 Gerçek Zamanlı Stok Durumu</div>
+          <div style="overflow-x:auto;">
+            <table id="stock-table">
+              <thead>
+                <tr>
+                  <th>Malzeme</th><th>Miktar</th><th>Birim</th><th>Durum</th><th>Alerjen</th><th>İşlem</th>
+                </tr>
+              </thead>
+              <tbody id="stock-body"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="card">
+            <div class="card-title">➕ Stok Güncelle</div>
+            <div class="form-group"><label>Malzeme</label><input type="text" id="stock-item" placeholder="Malzeme adı" /></div>
+            <div class="form-group"><label>Miktar</label><input type="number" id="stock-qty" placeholder="0" /></div>
+            <div class="form-group"><label>Birim</label>
+              <select id="stock-unit"><option>kg</option><option>litre</option><option>adet</option><option>gram</option></select>
+            </div>
+            <button class="btn btn-primary" onclick="updateStock()">Stok Ekle</button>
+          </div>
+          <div class="card">
+            <div class="card-title">🚨 Kritik Stok Uyarıları</div>
+            <div id="stock-warnings"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════
+           PANEL 5: DECISION ENGINE
+      ═══════════════════════════════════════════════════ -->
+      <div class="panel" id="panel-decision">
+        <div class="grid2">
+          <div>
+            <div class="card">
+              <div class="card-title">🧠 Karar Motoru — Adım Adım İzleme</div>
+              <div class="step-flow" id="decision-steps">
+                <!-- filled by JS -->
+              </div>
+              <button class="btn btn-primary" onclick="runDecisionTrace()" style="margin-top:14px;width:100%;">
+                ▶ Karar Sürecini Simüle Et
+              </button>
+            </div>
+          </div>
+          <div>
+            <div class="card">
+              <div class="card-title">📊 ML Model Performansı</div>
+              <div class="sensor-bars" id="ml-metrics"></div>
+            </div>
+            <div class="card">
+              <div class="card-title">🔢 Karar Katsayıları</div>
+              <div id="coeff-table"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════
+           PANEL 6: ONTOLOGY
+      ═══════════════════════════════════════════════════ -->
+      <div class="panel" id="panel-ontology">
+        <div class="grid2">
+          <div>
+            <div class="card">
+              <div class="card-title">🕸 Özel Beslenme Ontolojisi (OWL)</div>
+              <div class="onto-tree" id="onto-diet"></div>
+            </div>
+          </div>
+          <div>
+            <div class="card">
+              <div class="card-title">🥗 Yemek & Besin Ontolojisi</div>
+              <div class="onto-tree" id="onto-food"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-title">🔗 SPARQL Sorgu Simülasyonu</div>
+          <div class="grid2">
+            <div>
+              <textarea id="sparql-query" rows="5" style="font-family:monospace;font-size:.75rem;">
+SELECT ?recipe ?name WHERE {
+  ?recipe rdf:type :Recipe .
+  ?recipe :hasDietType :GlutenFree .
+  ?recipe :hasCategory :MainCourse .
+  FILTER NOT EXISTS { ?recipe :containsAllergen :Gluten }
+}</textarea>
+              <button class="btn btn-primary" onclick="runSparql()" style="margin-top:8px;">▶ Sorgu Çalıştır</button>
+            </div>
+            <div>
+              <div class="card-title" style="margin-bottom:8px;">Sonuçlar</div>
+              <div id="sparql-results" style="font-size:.78rem;color:var(--muted);">Sorgu çalıştırın…</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════
+           PANEL 7: SENSORY ANALYSIS
+      ═══════════════════════════════════════════════════ -->
+      <div class="panel" id="panel-sensory">
+        <div class="grid2">
+          <div>
+            <div class="card">
+              <div class="card-title">🧪 Tüketici Testi Simülasyonu (n=300)</div>
+              <div class="form-group">
+                <label>Reçete Seç</label>
+                <select id="sensory-recipe" onchange="updateSensoryChart()">
+                  <!-- filled by JS -->
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Beslenme Kategorisi</label>
+                <select id="sensory-cat" onchange="updateSensoryChart()">
+                  <option value="glutensiz">Glutensiz</option>
+                  <option value="laktozsuz">Laktozsuz</option>
+                  <option value="vegan">Vegan</option>
+                  <option value="sekersiz">Rafine Şekersiz</option>
+                  <option value="lowcarb">Düşük Karbonhidrat</option>
+                  <option value="spor">Spor Beslenmesi</option>
+                </select>
+              </div>
+              <div id="sensory-chart"></div>
+            </div>
+          </div>
+          <div>
+            <div class="card">
+              <div class="card-title">📈 Hedonik Skala Dağılımı (9 Puanlı)</div>
+              <div id="hedonic-dist"></div>
+            </div>
+            <div class="card">
+              <div class="card-title">📋 İstatistiksel Analiz</div>
+              <div id="stat-analysis"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">🔄 Tüm Kategoriler — Ortalama Kabul Puanları</div>
+          <div id="all-cat-chart"></div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════
+           PANEL 8: PILOT
+      ═══════════════════════════════════════════════════ -->
+      <div class="panel" id="panel-pilot">
+        <div class="tab-bar">
+          <div class="tab active" onclick="pilotTab(0,this)">🏨 Grand Hotel Restaurant</div>
+          <div class="tab" onclick="pilotTab(1,this)">☕ Zincir Kafe (10+ Şube)</div>
+        </div>
+        <div id="pilot-content"></div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════
+           PANEL 9: DASHBOARD
+      ═══════════════════════════════════════════════════ -->
+      <div class="panel" id="panel-dashboard">
+        <div class="grid4" style="margin-bottom:16px;">
+          <div class="stat-card"><div class="stat-label">Toplam Reçete</div><div class="stat-value" style="color:var(--accent)">270</div><div class="stat-sub">6 kategori × 45</div></div>
+          <div class="stat-card"><div class="stat-label">Ortalama Kabul Puanı</div><div class="stat-value" style="color:var(--accent2)">7.4<span style="font-size:.9rem">/9</span></div><div class="stat-sub">Hedonik skala</div></div>
+          <div class="stat-card"><div class="stat-label">Alerjen Doğruluğu</div><div class="stat-value" style="color:var(--success)">99.2%</div><div class="stat-sub">Hedef: %98+</div></div>
+          <div class="stat-card"><div class="stat-label">Yanıt Süresi</div><div class="stat-value" style="color:var(--warning)">1.8s</div><div class="stat-sub">Hedef: &lt;10s</div></div>
+        </div>
+        <div class="grid2">
+          <div class="card">
+            <div class="card-title">📊 Kategori Başına İşlem</div>
+            <div id="dash-orders"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">🌍 Coğrafi İşaretli Ürün Kullanımı (Çanakkale)</div>
+            <div id="dash-geo"></div>
+          </div>
+        </div>
+        <div class="grid2" style="margin-top:16px;">
+          <div class="card">
+            <div class="card-title">🤖 ML Model Skoru Trendi</div>
+            <div id="dash-ml"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">👥 Tüketici Memnuniyeti</div>
+            <div id="dash-satisfaction"></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end #content -->
+  </div><!-- end #main -->
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════════════════════ -->
+<script>
+// ── SYNTHETIC DATA ─────────────────────────────────────────
+const ALLERGENS = ['gluten','laktoz','yumurta','fistikvb','deniz','soya'];
+
+const RECIPES = {
+  glutensiz: [
+    { id:'G01', name:'Karabuğday Çorbası', cat:'Başlangıç', allergens:[], score:8.1, protein:6, carb:18, cal:180, geo:'Biga Pirinci', stock:true, coeff:0.87 },
+    { id:'G02', name:'Ezine Peynirli Salata', cat:'Başlangıç', allergens:['laktoz'], score:7.6, protein:9, carb:5, cal:210, geo:'Ezine Peyniri', stock:true, coeff:0.79 },
+    { id:'G03', name:'Mısır Unlu Köfte', cat:'Ana Yemek', allergens:['yumurta'], score:8.4, protein:18, carb:22, cal:310, geo:'Yenice Biberi', stock:true, coeff:0.91 },
+    { id:'G04', name:'Quinoa Pilav', cat:'Ana Yemek', allergens:[], score:7.9, protein:14, carb:35, cal:280, geo:null, stock:true, coeff:0.83 },
+    { id:'G05', name:'Çikolatasız Keçiboynuzu Tatlısı', cat:'Tatlı', allergens:[], score:7.2, protein:3, carb:28, cal:240, geo:null, stock:false, coeff:0.72 },
+    { id:'G06', name:'Meyve Püreli Chia Puding', cat:'Tatlı', allergens:[], score:8.6, protein:5, carb:22, cal:195, geo:null, stock:true, coeff:0.93 },
+  ],
+  laktozsuz: [
+    { id:'L01', name:'Mercimek Çorbası', cat:'Başlangıç', allergens:[], score:8.3, protein:8, carb:20, cal:190, geo:'Işıkeli Nohut', stock:true, coeff:0.89 },
+    { id:'L02', name:'Domates Soslu Köfte', cat:'Ana Yemek', allergens:['gluten'], score:7.8, protein:22, carb:15, cal:320, geo:'Çanakkale Domat.', stock:true, coeff:0.84 },
+    { id:'L03', name:'Zeytinyağlı Enginar', cat:'Ana Yemek', allergens:[], score:8.0, protein:5, carb:12, cal:160, geo:'Geyikli Zeytinyağı', stock:true, coeff:0.86 },
+    { id:'L04', name:'Hindistancevizi Sütlü Muhallebi', cat:'Tatlı', allergens:[], score:7.5, protein:3, carb:30, cal:220, geo:null, stock:true, coeff:0.77 },
+  ],
+  vegan: [
+    { id:'V01', name:'Semizotu Salatası', cat:'Başlangıç', allergens:[], score:7.9, protein:4, carb:8, cal:120, geo:'Geyikli Zeytinyağı', stock:true, coeff:0.83 },
+    { id:'V02', name:'Nohut Körisi', cat:'Ana Yemek', allergens:[], score:8.2, protein:16, carb:38, cal:340, geo:'Işıkeli Nohut', stock:true, coeff:0.88 },
+    { id:'V03', name:'Bozcaada Üzümlü Sufle', cat:'Tatlı', allergens:[], score:8.5, protein:4, carb:35, cal:280, geo:'Bozcaada Çavuş', stock:true, coeff:0.92 },
+    { id:'V04', name:'Lapseki Şeftalili Smoothie', cat:'Başlangıç', allergens:[], score:8.7, protein:2, carb:25, cal:140, geo:'Lapseki Şeftalisi', stock:false, coeff:0.95 },
+  ],
+  sekersiz: [
+    { id:'S01', name:'Bayramiç Elmalı Komposto', cat:'Tatlı', allergens:[], score:7.4, protein:1, carb:18, cal:90, geo:'Bayramiç Elması', stock:true, coeff:0.75 },
+    { id:'S02', name:'Tahini Helvası (Doğal)', cat:'Tatlı', allergens:['fistikvb'], score:8.1, protein:6, carb:15, cal:210, geo:'Bayramiç Tahin H.', stock:true, coeff:0.87 },
+    { id:'S03', name:'Meyve Soslu Pancake', cat:'Başlangıç', allergens:['yumurta','gluten'], score:7.6, protein:8, carb:22, cal:240, geo:null, stock:true, coeff:0.79 },
+    { id:'S04', name:'Düşük GI Yulaf Kasesi', cat:'Başlangıç', allergens:[], score:7.8, protein:7, carb:28, cal:200, geo:null, stock:true, coeff:0.82 },
+  ],
+  lowcarb: [
+    { id:'K01', name:'Izgara Somon', cat:'Ana Yemek', allergens:['deniz'], score:8.4, protein:35, carb:2, cal:380, geo:null, stock:true, coeff:0.91 },
+    { id:'K02', name:'Kabak Spagetti', cat:'Ana Yemek', allergens:[], score:7.7, protein:12, carb:8, cal:200, geo:null, stock:true, coeff:0.80 },
+    { id:'K03', name:'Avokado Salatası', cat:'Başlangıç', allergens:[], score:8.2, protein:5, carb:6, cal:280, geo:null, stock:true, coeff:0.88 },
+    { id:'K04', name:'Peynir Tabağı', cat:'Başlangıç', allergens:['laktoz'], score:8.6, protein:18, carb:3, cal:320, geo:'Bayramiç Beyazı', stock:true, coeff:0.93 },
+  ],
+  spor: [
+    { id:'P01', name:'Yüksek Proteinli Tavuk Sarma', cat:'Ana Yemek', allergens:['gluten'], score:8.5, protein:42, carb:18, cal:420, geo:'Yenice Biberi', stock:true, coeff:0.92 },
+    { id:'P02', name:'Protein Smoothie', cat:'Başlangıç', allergens:['laktoz','soya'], score:7.8, protein:30, carb:20, cal:280, geo:null, stock:true, coeff:0.83 },
+    { id:'P03', name:'Kinoa Protein Bowl', cat:'Ana Yemek', allergens:[], score:8.9, protein:38, carb:32, cal:460, geo:null, stock:true, coeff:0.97 },
+    { id:'P04', name:'Yüksek Protein Tatlı Bar', cat:'Tatlı', allergens:['yumurta'], score:7.5, protein:25, carb:22, cal:310, geo:null, stock:true, coeff:0.77 },
+  ]
+};
+
+const STOCK_DATA = [
+  { name:'Karabuğday', qty:5, unit:'kg', allergen:null, min:1 },
+  { name:'Ezine Peyniri', qty:2.3, unit:'kg', allergen:'laktoz', min:1 },
+  { name:'Mısır Unu', qty:8, unit:'kg', allergen:null, min:2 },
+  { name:'Quinoa', qty:3.5, unit:'kg', allergen:null, min:1 },
+  { name:'Mercimek', qty:12, unit:'kg', allergen:null, min:2 },
+  { name:'Çanakkale Domatesi', qty:0.4, unit:'kg', allergen:null, min:2 },
+  { name:'Geyikli Zeytinyağı', qty:6, unit:'litre', allergen:null, min:1 },
+  { name:'Işıkeli Nohut', qty:4, unit:'kg', allergen:null, min:1 },
+  { name:'Bayramiç Elması', qty:0.3, unit:'kg', allergen:null, min:1 },
+  { name:'Bayramiç Tahin Helva', qty:2, unit:'kg', allergen:'fistikvb', min:0.5 },
+  { name:'Lapseki Şeftalisi', qty:0, unit:'kg', allergen:null, min:1 },
+  { name:'Bozcaada Çavuş Üzümü', qty:1.5, unit:'kg', allergen:null, min:0.5 },
+  { name:'Biga Pirinci', qty:7, unit:'kg', allergen:null, min:2 },
+  { name:'Yulaf', qty:5, unit:'kg', allergen:'gluten', min:1 },
+  { name:'Hindistancevizi Sütü', qty:4, unit:'litre', allergen:null, min:1 },
+];
+
+const GEO_PRODUCTS = [
+  'Ezine Peyniri','Bayramiç Beyazı','Bayramiç Elması','Bozcaada Çavuş Üzümü',
+  'Geyikli Zeytinyağı','Yenice Kırmızı Biberi','Bayramiç Tahin Helvası',
+  'Bayramiç Zeytinyağı','Lapseki Şeftalisi','Biga Pirinci','Çanakkale Domatesi','Işıkeli Nohut Kahvesi'
+];
+
+let activeAllergens = ['laktoz'];
+let kitchenOrders = [];
+let completedOrders = [];
+let currentLang = 'tr';
+
+// ── TRANSLATIONS ────────────────────────────────────────────
+const T = {
+  tr: { greeting: 'Merhaba! Ben NutriChef, yapay zeka destekli şef asistanınızım. Size nasıl yardımcı olabilirim?', langName:'Türkçe' },
+  en: { greeting: 'Hello! I am NutriChef, your AI-powered chef assistant. How can I help you today?', langName:'English' },
+  de: { greeting: 'Hallo! Ich bin NutriChef, Ihr KI-gestützter Koch-Assistent. Wie kann ich Ihnen helfen?', langName:'Deutsch' },
+  ru: { greeting: 'Привет! Я NutriChef, ваш ИИ-помощник шеф-повара. Чем я могу вам помочь?', langName:'Русский' }
+};
+
+// ── INIT ────────────────────────────────────────────────────
+window.onload = () => {
+  initStock();
+  initKitchen();
+  initDecisionSteps();
+  initOntology();
+  initSensory();
+  initDashboard();
+  initPilot(0);
+  addChatMsg('bot', T[currentLang].greeting);
+};
+
+// ── NAVIGATION ──────────────────────────────────────────────
+const pageTitles = {
+  'panel-customer':'Müşteri Profili & Sipariş',
+  'panel-chatbot':'Sohbet Robotu',
+  'panel-kitchen':'Mutfak Paneli',
+  'panel-stock':'Stok Yönetimi',
+  'panel-decision':'Karar Destek Sistemi',
+  'panel-ontology':'Ontoloji Görüntüleyici',
+  'panel-sensory':'Duyusal Analiz',
+  'panel-pilot':'Pilot İşletmeler',
+  'panel-dashboard':'Genel Dashboard'
+};
+function showPanel(id) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.getElementById(id).classList.add('fade-in');
+  document.getElementById('page-title').textContent = pageTitles[id]||id;
+  event.currentTarget.classList.add('active');
+}
+
+// ── LANGUAGE ─────────────────────────────────────────────────
+function setLang(lang) {
+  currentLang = lang;
+  document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));
+  event.target.classList.add('active');
+  clearChat();
+  addChatMsg('bot', T[lang].greeting);
+  document.getElementById('lang-detect').innerHTML = `<span class="badge badge-teal">Tespit: ${T[lang].langName}</span>`;
+}
+
+// ── ALLERGEN TOGGLE ───────────────────────────────────────────
+function toggleAllergen(el, key) {
+  el.classList.toggle('active');
+  if (activeAllergens.includes(key)) activeAllergens = activeAllergens.filter(a=>a!==key);
+  else activeAllergens.push(key);
+}
+
+// ── PROFILE UPDATE ────────────────────────────────────────────
+function updateProfile() {}
+
+// ── DECISION ENGINE ───────────────────────────────────────────
+function runDecisionEngine() {
+  const diet = document.getElementById('cust-diet').value;
+  const cat = document.getElementById('cust-category').value;
+  const name = document.getElementById('cust-name').value || 'Müşteri';
+
+  showLoading();
+  setTimeout(() => {
+    hideLoading();
+    const recipes = RECIPES[diet] || [];
+    
+    // Filter pipeline
+    let step1 = recipes.filter(r => !r.allergens.some(a => activeAllergens.includes(a)));
+    let step2 = step1.filter(r => r.stock);
+    let step3 = step2.sort((a,b) => b.coeff - a.coeff).slice(0,5);
+
+    const container = document.getElementById('recipe-results');
+    if (step3.length === 0) {
+      container.innerHTML = `<div class="alert alert-danger">⚠️ Seçili profil ve stok koşullarına uygun reçete bulunamadı. Stok güncellenmesi veya alternatif kategori seçilmesi önerilir.</div>`;
+      return;
+    }
+
+    container.innerHTML = step3.map((r,i) => `
+      <div class="recipe-card ${i===0?'selected':''}" onclick="selectRecipe(this,'${r.id}','${diet}')" id="rcard-${r.id}">
+        <div style="display:flex;justify-content:space-between;align-items:start;">
+          <div class="recipe-name">${i===0?'⭐ ':''} ${r.name}</div>
+          <span style="font-size:.7rem;color:var(--muted);">${r.id}</span>
+        </div>
+        <div class="recipe-meta">
+          <span class="tag ok">✓ Uygun</span>
+          ${r.geo ? `<span class="tag" style="color:var(--accent)">🌍 ${r.geo}</span>` : ''}
+          <span class="tag">${r.cat}</span>
+          <span class="tag">${r.cal} kcal</span>
+          <span class="tag">${r.protein}g protein</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted);">
+          <span>Kabul Katsayısı: <strong style="color:var(--text)">${r.coeff}</strong></span>
+          <span>Hedonik: <strong style="color:var(--accent)">${r.score}/9</strong></span>
+        </div>
+        <div class="score-bar"><div class="score-fill" style="width:${r.coeff*100}%"></div></div>
+      </div>
+    `).join('');
+
+    // Eliminated recipes info
+    const eliminated = step1.length - step2.length;
+    if (eliminated > 0) {
+      container.innerHTML += `<div class="alert alert-warn" style="margin-top:8px;">ℹ️ ${eliminated} reçete stok yetersizliği nedeniyle elendi.</div>`;
+    }
+    const allergenElim = recipes.length - step1.length;
+    if (allergenElim > 0) {
+      container.innerHTML += `<div class="alert alert-danger" style="margin-top:8px;">🚫 ${allergenElim} reçete alerjen filtresi nedeniyle elendi.</div>`;
+    }
+
+    // Profile summary
+    document.getElementById('profile-summary').style.display = 'block';
+    document.getElementById('profile-content').innerHTML = `
+      <div style="font-size:.8rem;line-height:1.9;">
+        <div>👤 <strong>${name}</strong></div>
+        <div>🥗 Beslenme: <span class="badge badge-teal">${getDietLabel(diet)}</span></div>
+        <div>🚫 Alerjenler: ${activeAllergens.length ? activeAllergens.map(a=>`<span class="badge badge-red">${a}</span>`).join(' ') : '<span style="color:var(--muted)">Yok</span>'}</div>
+        <div>📋 Kategori: ${cat}</div>
+        <div>📊 Toplam reçete: ${recipes.length} → Alerjen filtresi: ${step1.length} → Stok: ${step2.length} → Gösterilen: ${step3.length}</div>
+      </div>`;
+
+    selectedRecipeId = step3[0].id;
+    selectedDiet = diet;
+    updateOrderPanel(step3[0]);
+  }, 900);
+}
+
+let selectedRecipeId = null, selectedDiet = null;
+
+function selectRecipe(el, id, diet) {
+  document.querySelectorAll('.recipe-card').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedRecipeId = id;
+  selectedDiet = diet;
+  const r = RECIPES[diet].find(x=>x.id===id);
+  if (r) updateOrderPanel(r);
+}
+
+function updateOrderPanel(r) {
+  document.getElementById('order-panel').style.display = 'block';
+  document.getElementById('order-content').innerHTML = `
+    <div style="font-size:.82rem;line-height:1.8;">
+      <div>📌 <strong>${r.name}</strong> (${r.id})</div>
+      <div>🍽 Kategori: ${r.cat} | ${r.cal} kcal | ${r.protein}g protein | ${r.carb}g karbonhidrat</div>
+      ${r.geo ? `<div>🌍 Coğrafi İşaretli: <strong style="color:var(--accent)">${r.geo}</strong></div>` : ''}
+      <div>⭐ Duyusal puan: ${r.score}/9 | Öncelik katsayısı: ${r.coeff}</div>
+      ${r.allergens.length ? `<div class="alert alert-warn" style="margin-top:6px;">⚠️ İçerik alerjenleri: ${r.allergens.join(', ')} — Müşteri profiliyle uyumlu kontrol edildi.</div>` : ''}
+    </div>`;
+}
+
+function submitOrder() {
+  if (!selectedRecipeId) return;
+  const r = RECIPES[selectedDiet].find(x=>x.id===selectedRecipeId);
+  const order = {
+    id: 'SIP-' + Date.now().toString().slice(-4),
+    recipe: r,
+    customer: document.getElementById('cust-name').value || 'Müşteri',
+    table: document.getElementById('cust-table').value,
+    diet: selectedDiet,
+    allergens: [...activeAllergens],
+    time: new Date().toLocaleTimeString('tr'),
+    status: 'Bekliyor'
+  };
+  kitchenOrders.push(order);
+  updateKitchenPanel();
+  showToast('✅ Sipariş mutfağa iletildi! ' + order.id);
+  document.getElementById('order-panel').style.display = 'none';
+}
+
+function getDietLabel(d) {
+  const m = {glutensiz:'Glutensiz',laktozsuz:'Laktozsuz',vegan:'Vegan/Vejetaryen',sekersiz:'Rafine Şekersiz',lowcarb:'Düşük Karbonhidrat',spor:'Spor Beslenmesi'};
+  return m[d]||d;
+}
+
+// ── KITCHEN PANEL ─────────────────────────────────────────────
+function initKitchen() {
+  kitchenOrders = [
+    { id:'SIP-1001', recipe:RECIPES.glutensiz[2], customer:'Mehmet Yılmaz', table:'Masa 3', diet:'glutensiz', allergens:['gluten'], time:'12:14', status:'Hazırlanıyor' },
+    { id:'SIP-1002', recipe:RECIPES.vegan[1], customer:'Emily Schmidt', table:'Masa 8', diet:'vegan', allergens:[], time:'12:21', status:'Bekliyor' },
+  ];
+  updateKitchenPanel();
+}
+
+function updateKitchenPanel() {
+  const ordersEl = document.getElementById('kitchen-orders');
+  ordersEl.innerHTML = kitchenOrders.filter(o=>o.status!=='Tamamlandı').map(o => `
+    <div class="recipe-card" style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <strong style="font-size:.85rem;">${o.id}</strong>
+        <span class="badge ${o.status==='Bekliyor'?'badge-orange':'badge-teal'}">${o.status}</span>
+      </div>
+      <div style="font-size:.78rem;color:var(--muted);margin:4px 0;">${o.customer} — ${o.table} — ${o.time}</div>
+      <div style="font-size:.82rem;margin:4px 0;"><strong>${o.recipe.name}</strong> (${getDietLabel(o.diet)})</div>
+      ${o.allergens.length ? `<div class="alert alert-danger" style="padding:5px 8px;font-size:.72rem;margin-top:6px;">🚫 Alerjen: ${o.allergens.join(', ')}</div>` : ''}
+      <div style="display:flex;gap:6px;margin-top:8px;">
+        <button class="btn btn-secondary" style="font-size:.72rem;padding:4px 10px;" onclick="startCooking('${o.id}')">▶ Başla</button>
+        <button class="btn btn-primary" style="font-size:.72rem;padding:4px 10px;" onclick="completeOrder('${o.id}')">✓ Tamamla</button>
+      </div>
+    </div>`).join('') || '<div style="color:var(--muted);font-size:.82rem;">Bekleyen sipariş yok</div>';
+
+  // Alerts
+  const alertsEl = document.getElementById('kitchen-alerts');
+  const riskOrders = kitchenOrders.filter(o=>o.allergens.length && o.status!=='Tamamlandı');
+  alertsEl.innerHTML = riskOrders.length ?
+    riskOrders.map(o=>`
+      <div class="alert alert-danger">
+        <div>⚠️ <strong>${o.id}</strong> — ${o.recipe.name}<br>
+        <small>Alerjen: ${o.allergens.join(', ')} | Çapraz bulaşma riski → Ayrı hazırlık yüzeyi kullanın!</small></div>
+      </div>`).join('') :
+    '<div class="alert alert-success">✅ Aktif alerjen uyarısı yok</div>';
+}
+
+function startCooking(id) {
+  const o = kitchenOrders.find(x=>x.id===id);
+  if (o) { o.status='Hazırlanıyor'; updateKitchenPanel(); }
+}
+function completeOrder(id) {
+  const o = kitchenOrders.find(x=>x.id===id);
+  if (o) {
+    o.status='Tamamlandı';
+    completedOrders.push(o);
+    updateKitchenPanel();
+    document.getElementById('kitchen-completed').innerHTML =
+      completedOrders.map(c=>`<div style="font-size:.78rem;padding:5px 0;border-bottom:1px solid var(--border);">✅ ${c.id} — ${c.recipe.name} — ${c.time}</div>`).join('');
+  }
+}
+
+// ── STOCK ─────────────────────────────────────────────────────
+function initStock() {
+  renderStockTable();
+  renderStockWarnings();
+}
+
+function renderStockTable() {
+  const tbody = document.getElementById('stock-body');
+  tbody.innerHTML = STOCK_DATA.map((s,i) => {
+    const pct = Math.min(1, s.qty / (s.min * 3));
+    const status = s.qty === 0 ? 'danger' : s.qty < s.min ? 'warn' : 'ok';
+    const statusLabels = {ok:'Yeterli',warn:'Kritik',danger:'Tükendi'};
+    return `<tr>
+      <td><strong>${s.name}</strong></td>
+      <td>${s.qty}</td>
+      <td>${s.unit}</td>
+      <td><span class="badge badge-${status==='ok'?'green':status==='warn'?'orange':'red'}">${statusLabels[status]}</span></td>
+      <td>${s.allergen ? `<span class="tag warn">${s.allergen}</span>` : '—'}</td>
+      <td><button class="btn btn-secondary" style="font-size:.68rem;padding:3px 8px;" onclick="stockDecrement(${i})">−</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function stockDecrement(i) {
+  if (STOCK_DATA[i].qty > 0) { STOCK_DATA[i].qty = Math.max(0, STOCK_DATA[i].qty - 0.5); renderStockTable(); renderStockWarnings(); }
+}
+
+function renderStockWarnings() {
+  const el = document.getElementById('stock-warnings');
+  const warns = STOCK_DATA.filter(s=>s.qty < s.min);
+  el.innerHTML = warns.length ?
+    warns.map(s=>`<div class="alert ${s.qty===0?'alert-danger':'alert-warn'}">
+      ${s.qty===0?'🚫':'⚠️'} <strong>${s.name}</strong>: ${s.qty} ${s.unit} (min: ${s.min} ${s.unit})</div>`).join('') :
+    '<div class="alert alert-success">✅ Tüm stoklar yeterli seviyede</div>';
+}
+
+function updateStock() {
+  const name = document.getElementById('stock-item').value;
+  const qty = parseFloat(document.getElementById('stock-qty').value)||0;
+  const unit = document.getElementById('stock-unit').value;
+  if (!name) return;
+  const existing = STOCK_DATA.find(s=>s.name.toLowerCase()===name.toLowerCase());
+  if (existing) { existing.qty += qty; }
+  else { STOCK_DATA.push({name,qty,unit,allergen:null,min:1}); }
+  renderStockTable(); renderStockWarnings();
+  showToast('Stok güncellendi: '+name);
+}
+
+// ── DECISION TRACE ────────────────────────────────────────────
+const decisionStepData = [
+  { title:'1. Beslenme Profili Alındı', desc:'Kullanıcı profili dijital konsoldan okundu', result:'Glutensiz + Alerjen: [laktoz]' },
+  { title:'2. Alerjen Filtreleme', desc:'SPARQL sorgusu ile alerjen içeren reçeteler elendi', result:'270 → 198 reçete geçti' },
+  { title:'3. İntolerans & Beslenme Kısıtı', desc:'Ontoloji tabanlı uygunluk kontrolü', result:'198 → 45 glutensiz reçete' },
+  { title:'4. Stok Uygunluğu', desc:'Gerçek zamanlı stok verisi ile karşılaştırma', result:'45 → 38 stokta mevcut' },
+  { title:'5. ML Kişiselleştirme', desc:'Collaborative Filtering ile kullanıcı tercihi skoru', result:'SVD modeli çalıştırıldı' },
+  { title:'6. Tüketici Katsayısı Entegrasyonu', desc:'Hedonik skala puanları ağırlıklandırmaya eklendi', result:'Ağırlıklı sıralama hesaplandı' },
+  { title:'7. Top-5 Öneri Sunumu', desc:'En yüksek katsayılı 5 reçete kullanıcıya sunuldu', result:'✅ Öneri tamamlandı (1.8s)' }
+];
+
+function initDecisionSteps() {
+  const el = document.getElementById('decision-steps');
+  el.innerHTML = decisionStepData.map((s,i)=>`
+    <div class="step" id="dstep-${i}">
+      <div class="step-num">${i+1}</div>
+      <div class="step-body">
+        <div class="step-title">${s.title}</div>
+        <div class="step-desc">${s.desc}</div>
+        <div class="step-result" id="dstep-result-${i}" style="display:none"></div>
+      </div>
+    </div>`).join('');
+
+  const mlEl = document.getElementById('ml-metrics');
+  const metrics = [
+    {name:'Precision',val:82,color:'var(--accent)'},
+    {name:'Recall',val:76,color:'var(--accent2)'},
+    {name:'F1-Score',val:79,color:'var(--success)'},
+    {name:'RMSE',val:68,color:'var(--warning)'},
+    {name:'Alerjen Güv.',val:99,color:'var(--danger)'},
+  ];
+  mlEl.innerHTML = metrics.map(m=>`
+    <div class="sensor-row">
+      <div class="sensor-name">${m.name}</div>
+      <div class="sensor-track"><div class="sensor-fill" style="width:${m.val}%;background:${m.color}"></div></div>
+      <div class="sensor-val">${m.val}%</div>
+    </div>`).join('');
+
+  document.getElementById('coeff-table').innerHTML = `
+    <table>
+      <thead><tr><th>Reçete</th><th>Koeff.</th><th>Durum</th></tr></thead>
+      <tbody>
+        ${RECIPES.glutensiz.slice(0,4).map(r=>`
+          <tr><td>${r.name}</td><td>${r.coeff}</td><td><span class="badge badge-${r.coeff>0.85?'green':'orange'}">${r.coeff>0.85?'Yüksek':'Orta'}</span></td></tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function runDecisionTrace() {
+  decisionStepData.forEach((_,i)=>{
+    const el = document.getElementById('dstep-'+i);
+    const res = document.getElementById('dstep-result-'+i);
+    el.classList.remove('done','active');
+    res.style.display='none';
+  });
+  let i = 0;
+  function next() {
+    if (i >= decisionStepData.length) return;
+    if (i > 0) {
+      document.getElementById('dstep-'+(i-1)).classList.remove('active');
+      document.getElementById('dstep-'+(i-1)).classList.add('done');
+      document.getElementById('dstep-result-'+(i-1)).textContent = '→ '+decisionStepData[i-1].result;
+      document.getElementById('dstep-result-'+(i-1)).style.display = 'block';
+      document.getElementById('dstep-result-'+(i-1)).style.color = 'var(--success)';
+    }
+    document.getElementById('dstep-'+i).classList.add('active');
+    i++;
+    setTimeout(next, 600);
+  }
+  next();
+}
+
+// ── ONTOLOGY ──────────────────────────────────────────────────
+function initOntology() {
+  document.getElementById('onto-diet').innerHTML = `
+<div class="onto-tree">
+  <div><span class="onto-leaf"><span class="onto-dot" style="background:var(--accent)"></span><strong>ÖzelBeslenmeOntolojisi</strong></span></div>
+  <div class="onto-node">
+    <div>📁 BeslenmeTipi</div>
+    <div class="onto-node">
+      <div><span class="onto-leaf"><span class="onto-dot" style="background:var(--accent2)"></span>Glutensiz</span> → hasRestriction: Gluten</div>
+      <div><span class="onto-leaf"><span class="onto-dot" style="background:var(--accent2)"></span>Laktozsuz</span> → hasRestriction: Laktoz</div>
+      <div><span class="onto-leaf"><span class="onto-dot" style="background:#8b5cf6"></span>Vegan</span> → hasRestriction: HayoansalÜrün</div>
+      <div><span class="onto-leaf"><span class="onto-dot" style="background:var(--success)"></span>RafineŞekersiz</span></div>
+      <div><span class="onto-leaf"><span class="onto-dot" style="background:var(--warning)"></span>DüşükKarbonhidrat</span></div>
+      <div><span class="onto-leaf"><span class="onto-dot" style="background:var(--danger)"></span>SporBeslenmesi</span></div>
+    </div>
+    <div>📁 Alerjen</div>
+    <div class="onto-node">
+      ${ALLERGENS.map(a=>`<div><span class="onto-leaf"><span class="onto-dot" style="background:var(--danger)"></span>${a}</span> → isAllergenType</div>`).join('')}
+    </div>
+    <div>📁 GıdaKatkı</div>
+    <div class="onto-node">
+      <div>Koruyucu, Renklendirici, Tatlandırıcı</div>
+    </div>
+  </div>
+</div>`;
+
+  document.getElementById('onto-food').innerHTML = `
+<div class="onto-tree">
+  <div><span class="onto-leaf"><span class="onto-dot" style="background:var(--accent)"></span><strong>YemekOntolojisi (Üst Model)</strong></span></div>
+  <div class="onto-node">
+    <div>📁 Yemek</div>
+    <div class="onto-node">
+      <div>→ hasIngredient: Besin</div>
+      <div>→ hasCategory: Başlangıç|AnaYemek|Tatlı</div>
+      <div>→ containsAllergen: Alerjen*</div>
+      <div>→ suitableFor: BeslenmeTipi*</div>
+      <div>→ hasGeoTag: CoğrafiİşaretliÜrün</div>
+    </div>
+    <div>📁 Besin</div>
+    <div class="onto-node">
+      <div>→ isAllergenSource: Alerjen*</div>
+      <div>→ hasNutrient: Protein|Karbonhidrat|Yağ</div>
+      <div>→ derivedFrom: Kaynak</div>
+    </div>
+    <div>📁 CoğrafiİşaretliÜrün (12 ürün)</div>
+    <div class="onto-node">
+      ${GEO_PRODUCTS.slice(0,5).map(g=>`<div><span class="onto-leaf"><span class="onto-dot" style="background:var(--accent)"></span>${g}</span></div>`).join('')}
+      <div style="color:var(--muted)">...+7 daha</div>
+    </div>
+  </div>
+</div>`;
+}
+
+function runSparql() {
+  const q = document.getElementById('sparql-query').value;
+  const results = RECIPES.glutensiz.filter(r=>r.cat==='Ana Yemek' && !r.allergens.includes('gluten'));
+  document.getElementById('sparql-results').innerHTML = `
+    <div class="alert alert-success" style="margin-bottom:8px;">✅ ${results.length} sonuç bulundu</div>
+    <table>
+      <thead><tr><th>?recipe</th><th>?name</th></tr></thead>
+      <tbody>${results.map(r=>`<tr><td style="font-family:monospace">:${r.id}</td><td>${r.name}</td></tr>`).join('')}</tbody>
+    </table>`;
+}
+
+// ── SENSORY ANALYSIS ──────────────────────────────────────────
+function initSensory() {
+  const sel = document.getElementById('sensory-recipe');
+  const allR = Object.values(RECIPES).flat();
+  sel.innerHTML = allR.map(r=>`<option value="${r.id}">${r.name} (${r.id})</option>`).join('');
+  updateSensoryChart();
+  renderAllCatChart();
+}
+
+function updateSensoryChart() {
+  const allR = Object.values(RECIPES).flat();
+  const rid = document.getElementById('sensory-recipe').value;
+  const r = allR.find(x=>x.id===rid) || allR[0];
+  
+  const dims = [
+    {name:'Görünüş/Renk', val:r.score+Math.random()*.5-.25, color:'var(--accent)'},
+    {name:'Doku/Tekstür', val:r.score+Math.random()*.5-.25, color:'var(--accent2)'},
+    {name:'Tat/Koku', val:r.score+Math.random()*.5-.25, color:'var(--success)'},
+    {name:'Genel Beğeni', val:r.score, color:'var(--warning)'},
+  ];
+
+  document.getElementById('sensory-chart').innerHTML = `
+    <div class="sensor-bars">
+      ${dims.map(d=>`
+        <div class="sensor-row">
+          <div class="sensor-name">${d.name}</div>
+          <div class="sensor-track"><div class="sensor-fill" style="width:${(Math.min(9,d.val)/9)*100}%;background:${d.color}"></div></div>
+          <div class="sensor-val">${d.val.toFixed(1)}</div>
+        </div>`).join('')}
+    </div>
+    <div style="margin-top:12px;font-size:.75rem;color:var(--muted);">
+      n=50 katılımcı | 9 puanlı hedonik skala | Cronbach α=0.87
+    </div>`;
+
+  // Hedonic distribution
+  const dist = [1,2,3,4,5,6,7,8,9].map(v => ({ v, n: Math.round(50*Math.exp(-0.8*(v-r.score)**2)) }));
+  document.getElementById('hedonic-dist').innerHTML = `
+    <div style="display:flex;align-items:flex-end;gap:4px;height:80px;padding:8px 0;">
+      ${dist.map(d=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;">
+        <div style="width:100%;background:var(--accent);border-radius:2px 2px 0 0;height:${Math.max(4,d.n*1.5)}px;opacity:.8;"></div>
+        <div style="font-size:.6rem;color:var(--muted)">${d.v}</div>
+      </div>`).join('')}
+    </div>
+    <div style="font-size:.72rem;color:var(--muted);text-align:center;">Hedonik Skor Dağılımı (1=Hiç Beğenmedim, 9=Çok Beğendim)</div>`;
+
+  document.getElementById('stat-analysis').innerHTML = `
+    <div style="font-size:.78rem;line-height:2;">
+      <div>Ortalama (X̄): <strong>${r.score.toFixed(2)}</strong></div>
+      <div>Standart Sapma: <strong>${(0.3+Math.random()*.4).toFixed(2)}</strong></div>
+      <div>Cronbach α: <strong>0.87</strong></div>
+      <div>Kabul Eşiği (&gt;7.0): <span class="badge ${r.score>=7?'badge-green':'badge-red'}">${r.score>=7?'GEÇTİ':'KALDI'}</span></div>
+      <div>ANOVA p-değeri: <strong>&lt;0.05</strong> (anlamlı fark)</div>
+    </div>`;
+}
+
+function renderAllCatChart() {
+  const cats = ['glutensiz','laktozsuz','vegan','sekersiz','lowcarb','spor'];
+  const labels = ['Glutensiz','Laktozsuz','Vegan','Rafine Şekersiz','Düşük Karb.','Spor'];
+  const avgs = cats.map(c => {
+    const rs = RECIPES[c];
+    return rs.reduce((s,r)=>s+r.score,0)/rs.length;
+  });
+  document.getElementById('all-cat-chart').innerHTML = `
+    <div style="display:flex;gap:12px;align-items:flex-end;padding:12px 0;">
+      ${avgs.map((v,i)=>`
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;">
+          <div style="font-size:.72rem;font-weight:600;color:var(--text)">${v.toFixed(1)}</div>
+          <div style="width:100%;background:var(--accent);border-radius:4px 4px 0 0;height:${v*16}px;opacity:${.5+i*.08}"></div>
+          <div style="font-size:.62rem;color:var(--muted);text-align:center;">${labels[i]}</div>
+        </div>`).join('')}
+    </div>`;
+}
+
+// ── PILOT PANEL ───────────────────────────────────────────────
+const pilotData = [
+  {
+    name: 'Çanakkale Grand Hotel Restaurant',
+    type: '5 Yıldızlı Otel',
+    dishes: 142,
+    staff: 8,
+    weeklyTourists: 320,
+    satisfaction: 4.2,
+    specialOrders: 28,
+    integration: 'Micros POS',
+    stats: [
+      {label:'Günlük Sipariş',val:85},
+      {label:'Özel Beslenme Talebi',val:28},
+      {label:'Ortalama Yanıt Süresi',val:'1.9s'},
+      {label:'Hata Oranı',val:'0.8%'},
+    ]
+  },
+  {
+    name: 'Kafe Zinciri (Çanakkale + 9 Şube)',
+    type: 'Zincir Kafe',
+    dishes: 78,
+    staff: 4,
+    weeklyTourists: 180,
+    satisfaction: 4.0,
+    specialOrders: 15,
+    integration: 'Square POS',
+    stats: [
+      {label:'Günlük Sipariş',val:110},
+      {label:'Özel Beslenme Talebi',val:15},
+      {label:'Ortalama Yanıt Süresi',val:'1.4s'},
+      {label:'Hata Oranı',val:'1.1%'},
+    ]
+  }
+];
+
+function pilotTab(idx, el) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  initPilot(idx);
+  document.getElementById('active-pilot').textContent = 'Pilot: ' + pilotData[idx].name.split(' ').slice(0,3).join(' ');
+}
+
+function initPilot(idx) {
+  const p = pilotData[idx];
+  document.getElementById('pilot-content').innerHTML = `
+    <div class="grid3" style="margin-bottom:16px;">
+      <div class="stat-card"><div class="stat-label">İşletme Tipi</div><div style="font-size:1rem;font-weight:600;margin-top:4px;">${p.type}</div></div>
+      <div class="stat-card"><div class="stat-label">Menü Ürünü</div><div class="stat-value" style="color:var(--accent)">${p.dishes}</div></div>
+      <div class="stat-card"><div class="stat-label">Mutfak Personeli</div><div class="stat-value" style="color:var(--accent2)">${p.staff}</div></div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">📊 Pilot Ölçümleri</div>
+        ${p.stats.map(s=>`
+          <div class="meter-row">
+            <span>${s.label}</span>
+            <strong>${s.val}</strong>
+          </div>`).join('')}
+        <div style="margin-top:12px;">
+          <div class="card-title">Stok Entegrasyonu</div>
+          <span class="badge badge-teal">${p.integration}</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">⭐ Tüketici Memnuniyeti</div>
+        <div style="font-size:2.5rem;font-weight:700;color:var(--accent);text-align:center;padding:16px 0;">
+          ${p.satisfaction}/5
+        </div>
+        <div class="sensor-bars">
+          <div class="sensor-row">
+            <div class="sensor-name">Güven</div>
+            <div class="sensor-track"><div class="sensor-fill" style="width:88%;background:var(--accent)"></div></div>
+            <div class="sensor-val">4.4</div>
+          </div>
+          <div class="sensor-row">
+            <div class="sensor-name">Şeffaflık</div>
+            <div class="sensor-track"><div class="sensor-fill" style="width:82%;background:var(--accent2)"></div></div>
+            <div class="sensor-val">4.1</div>
+          </div>
+          <div class="sensor-row">
+            <div class="sensor-name">Erişilebilirlik</div>
+            <div class="sensor-track"><div class="sensor-fill" style="width:80%;background:var(--success)"></div></div>
+            <div class="sensor-val">4.0</div>
+          </div>
+        </div>
+        <div style="margin-top:12px;font-size:.75rem;color:var(--muted);">Haftalık turist: ${p.weeklyTourists} | Özel beslenme siparişi: ${p.specialOrders}/gün</div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px;">
+      <div class="card-title">🔬 Pilot Karar Ağacı — Reçete Onay Süreci</div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:.78rem;">
+        <div style="text-align:center;padding:8px 14px;background:var(--surface2);border-radius:6px;border:1px solid var(--border);">Reçete Hazırlandı</div>
+        <div style="color:var(--muted)">→</div>
+        <div style="text-align:center;padding:8px 14px;background:rgba(232,160,69,.1);border-radius:6px;border:1px solid var(--accent);">Uzman Duyusal Kontrol</div>
+        <div style="color:var(--muted)">→</div>
+        <div style="text-align:center;padding:8px 14px;background:rgba(94,207,177,.1);border-radius:6px;border:1px solid var(--accent2);">Tüketici Testi (n=50)</div>
+        <div style="color:var(--muted)">→</div>
+        <div style="text-align:center;padding:8px 14px;background:rgba(74,222,128,.1);border-radius:6px;border:1px solid var(--success);">≥7.0 → Menüye Ekle</div>
+        <div style="color:var(--muted)">|</div>
+        <div style="text-align:center;padding:8px 14px;background:rgba(248,113,113,.1);border-radius:6px;border:1px solid var(--danger);">&lt;7.0 → Revize</div>
+      </div>
+    </div>`;
+}
+
+// ── DASHBOARD ────────────────────────────────────────────────
+function initDashboard() {
+  const cats = ['Glutensiz','Laktozsuz','Vegan','Şekersiz','Düşük Karb.','Spor'];
+  const orders = [42,35,28,19,24,31];
+  document.getElementById('dash-orders').innerHTML = `
+    <div style="display:flex;gap:8px;align-items:flex-end;padding:8px 0;">
+      ${orders.map((v,i)=>`
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+          <div style="font-size:.7rem;color:var(--text);font-weight:600">${v}</div>
+          <div style="width:100%;background:var(--accent);border-radius:3px 3px 0 0;height:${v*2}px;opacity:.75"></div>
+          <div style="font-size:.58rem;color:var(--muted);text-align:center">${cats[i]}</div>
+        </div>`).join('')}
+    </div>`;
+
+  document.getElementById('dash-geo').innerHTML = `
+    <div class="sensor-bars">
+      ${GEO_PRODUCTS.slice(0,6).map((g,i)=>`
+        <div class="sensor-row">
+          <div class="sensor-name" style="width:120px;font-size:.7rem">${g.split(' ').slice(0,2).join(' ')}</div>
+          <div class="sensor-track"><div class="sensor-fill" style="width:${40+i*8}%;background:var(--accent)"></div></div>
+          <div class="sensor-val">${Math.round((40+i*8)*0.3)}r</div>
+        </div>`).join('')}
+    </div>
+    <div style="font-size:.72rem;color:var(--muted);margin-top:8px;">r = reçetede kullanım sayısı</div>`;
+
+  document.getElementById('dash-ml').innerHTML = `
+    <div style="font-size:.75rem;color:var(--muted);margin-bottom:8px;">Son 6 ay model skoru gelişimi</div>
+    <div style="display:flex;gap:8px;align-items:flex-end;padding:8px 0;">
+      ${[71,73,74,76,79,82].map((v,i)=>`
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+          <div style="font-size:.65rem;color:var(--text)">${v}%</div>
+          <div style="width:100%;background:var(--accent2);border-radius:2px 2px 0 0;height:${v*.6}px;opacity:.75"></div>
+          <div style="font-size:.6rem;color:var(--muted)">A${i+1}</div>
+        </div>`).join('')}
+    </div>`;
+
+  document.getElementById('dash-satisfaction').innerHTML = `
+    <div class="sensor-bars">
+      ${['Güven','Şeffaflık','Erişilebilirlik','Kullanım Kolaylığı','Genel'].map((l,i)=>`
+        <div class="sensor-row">
+          <div class="sensor-name">${l}</div>
+          <div class="sensor-track"><div class="sensor-fill" style="width:${70+i*4}%;background:var(--success)"></div></div>
+          <div class="sensor-val">${(3.7+i*0.12).toFixed(1)}</div>
+        </div>`).join('')}
+    </div>
+    <div style="font-size:.72rem;color:var(--muted);margin-top:8px;">5 puanlı ölçek | n=620</div>`;
+}
+
+// ── CHATBOT ───────────────────────────────────────────────────
+const chatResponses = {
+  tr: {
+    default: r => `${r} için uygun seçenekleri filtreledim. Alerjen durumunuzu belirtir misiniz?`,
+    glutensiz: () => '🌾 Glutensiz başlangıç önerileri: <strong>Karabuğday Çorbası</strong> (8.1/9), <strong>Semizotu Salatası</strong> (7.9/9). Her iki reçete de stokta mevcut ve onaylanmış.',
+    alerjen: (food) => `🔍 <strong>${food}</strong> analiz ediliyor... Ontoloji sorgusuna göre: glutensiz reçetedir, ancak çapraz bulaşma riski için mutfağa özel talimat iletildi.`,
+    vegan: () => '🌱 Vegan tatlı seçenekleri: <strong>Bozcaada Çavuş Üzümlü Sufle</strong> (8.5/9) — Coğrafi işaretli ürün kullanıyor. <strong>Lapseki Şeftalili Smoothie</strong> (8.7/9) — stok kontrol ediliyor.',
+    siparis: () => '✅ Sipariş mutfağa iletildi! Hazırlanma süresi ~12 dakika. Alerjen bilgisi mutfak tabletine gönderildi.',
+  },
+  en: {
+    default: r => `I filtered suitable options for "${r}". Could you specify your allergen profile?`,
+    glutensiz: () => '🌾 Gluten-free starters: <strong>Buckwheat Soup</strong> (8.1/9), <strong>Purslane Salad</strong> (7.9/9). Both in stock and approved.',
+    alerjen: (food) => `🔍 Analyzing <strong>${food}</strong>... According to ontology query: gluten-free recipe, cross-contamination alert sent to kitchen.`,
+    vegan: () => '🌱 Vegan desserts: <strong>Bozcaada Grape Soufflé</strong> (8.5/9) — uses geo-tagged ingredient. <strong>Lapseki Peach Smoothie</strong> (8.7/9) — stock being checked.',
+    siparis: () => '✅ Order sent to kitchen! Preparation ~12 min. Allergen info forwarded to kitchen tablet.',
+  },
+  de: {
+    default: r => `Geeignete Optionen für "${r}" gefiltert. Bitte geben Sie Ihre Allergenangaben an.`,
+    glutensiz: () => '🌾 Glutenfreie Vorspeisen: <strong>Buchweizensuppe</strong> (8.1/9). Auf Lager und genehmigt.',
+    vegan: () => '🌱 Vegane Desserts: <strong>Bozcaada Trauben-Soufflé</strong> (8.5/9) — geografisch geschütztes Produkt.',
+    siparis: () => '✅ Bestellung an Küche gesendet! Ca. 12 Min. Allergene wurden übermittelt.',
+    alerjen: (f) => `🔍 Analysiere ${f}... Glutenfrei laut Ontologie.`,
+  },
+  ru: {
+    default: r => `Я отфильтровал варианты для "${r}". Уточните аллергены?`,
+    glutensiz: () => '🌾 Безглютеновые закуски: <strong>Гречневый суп</strong> (8.1/9). Есть в наличии.',
+    vegan: () => '🌱 Веганские десерты: <strong>Суфле с виноградом Бозджаада</strong> (8.5/9).',
+    siparis: () => '✅ Заказ отправлен на кухню! ~12 мин. Аллергены переданы.',
+    alerjen: (f) => `🔍 Анализирую ${f}... Без глютена согласно онтологии.`,
+  }
+};
+
+function clearChat() { document.getElementById('chat-messages').innerHTML = ''; }
+
+function addChatMsg(who, text) {
+  const el = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = `msg ${who}`;
+  div.innerHTML = `
+    <div class="msg-avatar">${who==='bot'?'🤖':'👤'}</div>
+    <div class="msg-text">${text}</div>`;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+function processMessage(msg) {
+  const lang = currentLang;
+  const r = chatResponses[lang] || chatResponses.tr;
+  const lower = msg.toLowerCase();
+
+  // NLP analysis display
+  let intent = 'menü_sorgulama', entities = [], confidence = 0.92;
+  if (lower.includes('glutensiz')||lower.includes('gluten')) { intent='reçete_önerisi'; entities=['glutensiz']; }
+  else if (lower.includes('vegan')) { intent='reçete_önerisi'; entities=['vegan']; }
+  else if (lower.includes('alerjen')||lower.includes('allergen')||lower.includes('var mı')) { intent='içerik_sorgulama'; entities=['alerjen_kontrolü']; confidence=0.89; }
+  else if (lower.includes('sipariş')||lower.includes('order')) { intent='sipariş_oluştur'; confidence=0.95; }
+  else if (lower.includes('lactose')||lower.includes('laktoz')) { intent='reçete_önerisi'; entities=['laktozsuz']; }
+
+  document.getElementById('nlp-output').innerHTML = `
+    <div style="font-size:.78rem;line-height:1.8;font-family:monospace;">
+      <div><span style="color:var(--muted)">intent:</span> <span style="color:var(--accent2)">${intent}</span></div>
+      <div><span style="color:var(--muted)">entities:</span> <span style="color:var(--accent)">[${entities.join(', ')||'—'}]</span></div>
+      <div><span style="color:var(--muted)">confidence:</span> <span style="color:var(--success)">${confidence}</span></div>
+      <div><span style="color:var(--muted)">lang:</span> <span style="color:var(--warning)">${lang}</span></div>
+      <div><span style="color:var(--muted)">sparql:</span> <span style="color:var(--text);font-size:.7rem">SELECT ?r WHERE { ?r :hasDietType :${entities[0]||'Any'} }</span></div>
+    </div>`;
+
+  document.getElementById('lang-detect').innerHTML = `<span class="badge badge-teal">Tespit: ${T[lang]?.langName||lang}</span>`;
+
+  // Generate response
+  let response;
+  if (lower.includes('glutensiz')||lower.includes('gluten-free')) response = r.glutensiz?.() || r.default(msg);
+  else if (lower.includes('vegan')||lower.includes('vejetaryen')) response = r.vegan?.() || r.default(msg);
+  else if (lower.includes('var mı')||lower.includes('içerik')||lower.includes('alerjen')||lower.includes('allergen')) {
+    const food = lower.includes('mercimek')?'Mercimek Çorbası':lower.includes('quinoa')?'Quinoa Pilav':'seçilen yemek';
+    response = r.alerjen?.(food) || r.default(msg);
+  }
+  else if (lower.includes('sipariş')||lower.includes('order')||lower.includes('заказ')) response = r.siparis?.() || r.default(msg);
+  else response = r.default(msg);
+
+  setTimeout(() => addChatMsg('bot', response), 600);
+}
+
+function sendChat() {
+  const inp = document.getElementById('chat-input');
+  const msg = inp.value.trim();
+  if (!msg) return;
+  addChatMsg('user', msg);
+  inp.value = '';
+  processMessage(msg);
+}
+
+function quickChat(msg) {
+  addChatMsg('user', msg);
+  processMessage(msg);
+}
+
+function startVoice() {
+  addChatMsg('bot', '🎤 <em>Sesli komut modu aktif... Google Cloud Speech-to-Text API simülasyonu</em>');
+  setTimeout(()=>{
+    addChatMsg('bot', '🔊 Algılanan: <strong>"Glutensiz yemek önerir misiniz?"</strong>');
+    processMessage('Glutensiz yemek önerisi');
+  },1200);
+}
+
+// ── UTILS ─────────────────────────────────────────────────────
+function showLoading() { document.getElementById('loading-overlay').style.display='flex'; }
+function hideLoading() { document.getElementById('loading-overlay').style.display='none'; }
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--accent);color:var(--text);padding:10px 18px;border-radius:8px;font-size:.82rem;z-index:9999;animation:fadeIn .3s ease;box-shadow:0 4px 16px rgba(0,0,0,.4)';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 3000);
+}
+</script>
+</body>
+</html>
